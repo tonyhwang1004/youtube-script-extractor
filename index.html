@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube 스크립트 추출기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        main {
+            padding: 40px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .example {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .example a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .example a:hover {
+            text-decoration: underline;
+        }
+
+        .result {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .video-info {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .video-info img {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .info-text h2 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .info-text p {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat {
+            padding: 5px 12px;
+            background: white;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .script-box {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .script-actions {
+            padding: 15px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .script-actions button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .script-content {
+            display: none;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .script-content.active {
+            display: block;
+        }
+
+        .script-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+            color: #333;
+            margin: 0;
+        }
+
+        .error {
+            display: none;
+            padding: 15px;
+            background: #fee;
+            border: 2px solid #fcc;
+            border-radius: 10px;
+            color: #c00;
+            margin-bottom: 20px;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .video-info {
+                flex-direction: column;
+            }
+
+            .video-info img {
+                width: 100%;
+                height: auto;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 YouTube 스크립트 추출기</h1>
+            <p class="subtitle">YouTube 동영상의 자막을 간편하게 추출하세요</p>
+        </header>
+
+        <main>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="YouTube URL을 입력하세요"
+                >
+                <button id="extractBtn" onclick="extractScript()">
+                    <span id="btnText">스크립트 추출</span>
+                    <span id="btnLoader" class="loader" style="display: none;"></span>
+                </button>
+            </div>
+
+            <div class="example">
+                예시: <a href="#" onclick="setExample(); return false;">
+                    https://www.youtube.com/watch?v=Obe5-NOLMt8
+                </a>
+            </div>
+
+            <div id="error" class="error"></div>
+
+            <div id="result" class="result">
+                <div class="video-info">
+                    <img id="thumbnail" src="" alt="썸네일">
+                    <div class="info-text">
+                        <h2 id="title"></h2>
+                        <p id="channel"></p>
+                        <div class="stats">
+                            <span class="stat" id="wordCount"></span>
+                            <span class="stat" id="lineCount"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('plain')">일반 스크립트</button>
+                    <button class="tab-btn" onclick="showTab('time')">타임스탬프 포함</button>
+                </div>
+
+                <div class="script-box">
+                    <div class="script-actions">
+                        <button onclick="copyScript()">📋 복사</button>
+                        <button onclick="downloadScript()">💾 다운로드</button>
+                    </div>
+                    <div id="plainScript" class="script-content active">
+                        <pre id="plainText"></pre>
+                    </div>
+                    <div id="timeScript" class="script-content">
+                        <pre id="timeText"></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            Made for 김엄마독서실 🎓
+        </footer>
+    </div>
+
+    <script>
+        let currentScript = '';
+        let currentTitle = '';
+
+        function setExample() {
+            document.getElementById('urlInput').value = 'https://www.youtube.com/watch?v=Obe5-NOLMt8';
+        }
+
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:v=|\/)([0-9A-Za-z_-]{11}).*/,
+                /(?:embed\/)([0-9A-Za-z_-]{11})/,
+                /^([0-9A-Za-z_-]{11})$/
+            ];
+            
+            for (let pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        async function extractScript() {
+            const url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                showError('YouTube URL을 입력해주세요.');
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                showError('올바른 YouTube URL이 아닙니다.');
+                return;
+            }
+
+            // UI 상태 변경
+            const btn = document.getElementById('extractBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'inline-block';
+            
+            hideError();
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                // 자막 가져오기
+                const response = await fetch(`https://yt-transcript-api.vercel.app/api/transcript?videoId=${videoId}`);
+                
+                if (!response.ok) {
+                    throw new Error('자막을 가져올 수 없습니다.');
+                }
+
+                const data = await response.json();
+                
+                if (!data || !data.transcript || data.transcript.length === 0) {
+                    throw new Error('이 동영상에는 자막이 없습니다.');
+                }
+
+                // 동영상 정보 가져오기
+                const infoResponse = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                let videoInfo = { title: '제목 없음', author_name: '채널 정보 없음', thumbnail_url: '' };
+                
+                if (infoResponse.ok) {
+                    videoInfo = await infoResponse.json();
+                }
+
+                // 스크립트 생성
+                const plainScript = data.transcript.map(item => item.text).join(' ');
+                const timeScript = data.transcript.map(item => {
+                    const time = Math.floor(item.offset / 1000);
+                    const minutes = Math.floor(time / 60);
+                    const seconds = time % 60;
+                    return `[${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}] ${item.text}`;
+                }).join('\n');
+
+                currentScript = plainScript;
+                currentTitle = videoInfo.title;
+
+                // 결과 표시
+                document.getElementById('thumbnail').src = videoInfo.thumbnail_url || 'https://via.placeholder.com/200x150?text=No+Image';
+                document.getElementById('title').textContent = videoInfo.title;
+                document.getElementById('channel').textContent = videoInfo.author_name;
+                document.getElementById('wordCount').textContent = `${plainScript.length.toLocaleString()} 글자`;
+                document.getElementById('lineCount').textContent = `${data.transcript.length} 라인`;
+                document.getElementById('plainText').textContent = plainScript;
+                document.getElementById('timeText').textContent = timeScript;
+                
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                showError(error.message || '스크립트 추출에 실패했습니다.');
+            } finally {
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoader.style.display = 'none';
+            }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.script-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            
+            if (tabName === 'plain') {
+                document.getElementById('plainScript').classList.add('active');
+            } else {
+                document.getElementById('timeScript').classList.add('active');
+            }
+        }
+
+        function copyScript() {
+            const activeContent = document.querySelector('.script-content.active pre');
+            const text = activeContent.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('스크립트가 복사되었습니다!');
+            }).catch(err => {
+                showError('복사 실패: ' + err.message);
+            });
+        }
+
+        function downloadScript() {
+            const activeContent = document.querySelector('.script-content.active pre');
+            const text = activeContent.textContent;
+            
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTitle}_스크립트.txt`;
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => hideError(), 5000);
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Enter 키 지원
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                extractScript();
+            }
+        });
+    </script>
+</body>
+</html>
